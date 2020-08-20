@@ -2,16 +2,18 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <ctime>
 using namespace std;
 
 struct Node
 {
 	int _x, _y;
+	long long _count;
 	Node *_pred, *_succ;
 
 	Node(int x = 0, int y = 0, Node* pred = NULL, Node* succ= NULL):
-		_x(x), _y(y), _pred(pred), _succ(succ)
+		_x(x), _y(y), _count(0), _pred(pred), _succ(succ)
 	{}
 
 	Node *insertAsPred(int x, int y)
@@ -40,10 +42,10 @@ struct List
 	~List();
 	void remove(Node* p);
 
-	Node *search(int x);
-	Node *insertWithOrder(int x, int y);
+	//Node *search(int x);
+	void insertWithOrder(int x, int y);
 
-	long long countPair();
+	void countPair();
 };
 
 List::List()
@@ -73,6 +75,7 @@ void List::remove(Node *p)
 	_size--;
 }
 
+/*
 Node *List::search(int x)
 {
 	//查找返回小于x的第一个数（因为x间均互异）。
@@ -90,21 +93,80 @@ Node *List::search(int x)
 	}	
 	return p;
 }
+*/
 
-//能否在insert的过程中就确定好插入的数量？
-//改为从前向后查找，并在节点中添加count参数。
-//每次比较先比较x，再比较y。
-Node *List::insertWithOrder(int x, int y)
+
+void List::insertWithOrder(int x, int y)
 {
-	Node *p = search(x);
-	p->insertAsSucc(x, y);
+	Node *p = tailer;
+	long long count = 0;
+	
+	//需要从右上向左下添加元素。
+	//返回_x大于x的第一个元素的位置。
+	while(p->_pred != header)
+	{
+		if(x < p->_pred->_x)
+		{
+			if(y < p->_pred->_y)
+			{
+				count++;
+			}
+			p = p->_pred;
+		}
+		else
+		{
+			break;
+		}
+	}
+	p = p->insertAsPred(x, y);
+	p->_count = count;
+
+	_size++;
+
+	while((p = p->_pred) != header)
+	{
+		if(p->_y < y)
+		{
+			p->_count++;
+		}
+	}
+
+	//算法有误，当点以{(3, 3), (2, 2), (1, 1)}的顺序添加时，会导致无法统计。
+	/*
+	//能否在insert的过程中就确定好插入的数量？
+	//改为从前向后查找，并在节点中添加count参数。
+	//每次比较先比较x，再比较y。
+	Node *p = header->_succ;
+	int count = header->_count;
+	
+	while(p != tailer)
+	{
+		if((p->_x < x) && (p->_y < y))
+		{
+			p->_count++;
+		}
+
+		//返回大于x的第一个元素的地址（因为x间均互异）。
+		if(x < p->_succ->_x)
+		{
+			p = p->_succ;
+			break;
+		}
+		p = p->_succ;
+	}
+
+	p = p->insertAsPred(x, y);
+	p->_count = count;
+
+	header->_count++;
 	_size++;
 	return p;
+	*/
+
 }
 
-long long List::countPair()
-{
-	long long count = 0;
+void List::countPair()
+{	
 	//花费n^2时间，太慢。
 	/*
 	Node *p = header->_succ;
@@ -123,40 +185,72 @@ long long List::countPair()
 	}*/
 
 
-	return count;
+	long long count = 0;
+	
+	timespec start, end;
+	double time;
+	timespec_get(&start, 1);
+	
+	Node *p = header->_succ;
+	while(p != tailer)
+	{
+		count += p->_count;
+		p = p->_succ;
+	}
+	
+	timespec_get(&end, 1);
+	time = (end.tv_sec - start.tv_sec) + 0.000000001 * (end.tv_nsec - start.tv_nsec);
+	cout << "time3: " << time << endl;
+	
+	printf("%lld\n", count);
+
 }
 
 int main()
 {
+	
 	int n;
 	cin >> n;
-
+	
+	/*
+	int n = 100000;
+	*/
 	List locs;
-
 	int x, y;
-
+	/*
 	timespec start, end;
 	double time;
+	
+	ifstream fin("file.txt");
+	*/
+
 
 	for(int i = 0; i < n; i++)
 	{
+		
 		cin >> x;
 		cin >> y;
-
+		
+		/*
+		fin >> x >> y;
+		
 		timespec_get(&start, 1);
-
+		*/
+		
 		locs.insertWithOrder(x, y);	
-
+		/*
 		timespec_get(&end, 1);
 		time = (end.tv_sec - start.tv_sec) + 0.000000001 * (end.tv_nsec - start.tv_nsec);
-		cout << "time1: " << time << endl;
+		cout << i << "\ttime1: " << time << endl;
+		*/
 	}
 
-	timespec_get(&start, 1);
+	//timespec_get(&start, 1);
 
-	cout << locs.countPair() << endl;
-
+	locs.countPair();
+	/*
 	timespec_get(&end, 1);
 	time = (end.tv_sec - start.tv_sec) + 0.000000001 * (end.tv_nsec - start.tv_nsec);
 	cout << "time2: " << time << endl;
+	*/
 }
